@@ -1,0 +1,97 @@
+| imports/includes |
+get "path/to/thing/other_script.s1" as other_script
+| can now access stuff in other_script like this |
+other_script.pi = 3.1415...
+
+| variable definition |
+int:name = 5 + 53753
+str:name = "a"
+float:name = 5.0
+double:name = 0.0
+bool:name = true
+
+| casting |
+int:example_int = 5
+example_int = 5.0 :: int
+example_int = my_custom_object :: int
+
+| lists
+type<>:name = <5, 2, 7>
+| index array
+my_array@0 = 4 | array is now <4, 2, 7> |
+| append to array
+my_array.new(4) | array is now <4, 2, 7, 4> |
+| insert in array
+my_array@2 >> 6 | array is now <4, 2, 6, 7, 4> |
+| remove element
+delete my_array@0 | array is now <2, 6, 7, 4> |
+
+
+| function definition |
+function (param:int, ...) name:yield_type {
+	yield 5
+}
+
+| calling a function |
+name()
+variable = name()
+
+| display text on console |
+display("some text")
+| get input from console |
+string_variable = receive()
+
+| define an object (class) |
+name:object {
+	| create member object |
+	my.name:int = ...
+
+	| built in functions follow this syntax |
+	$create (param:void, param:other) {}
+	| define a way to cast this to a different type |
+	$cast<int> { return 5 }
+	| when object is deleted |
+	$destroy { ... }
+
+	| create member function |
+	function (param:void) name:return_type {}
+
+	| call member function |
+	my.fn()
+}
+
+| creating an object |
+
+| if elif else |
+if (condition) {
+	
+} else if (condition) {
+
+} else {
+
+}
+
+| switch/case |
+switch(variable) {
+	case ("outcome_a") {
+	
+	}
+
+	case ("outcome_b") {
+	
+	}
+
+	default {
+	
+	}
+}
+
+| loops |
+until () {
+	
+}
+
+| for loops |
+for each (name:type @ array_name) {
+	...
+}
