@@ -3,32 +3,54 @@
 #include <iostream>
 #include <variant>
 
-enum class LEXER_TYPES : unsigned int {
+enum class TokenType : unsigned int {
 	NONE,
 	END,
-	INTEGER,
+	// types and type literals
+	INTEGER, INTEGER_LITERAL,
+	FLOAT, FLOAT_LITERAL,
+	STRING, STRING_LITERAL,
+	ISTRING, ISTRING_LITERAL,
+	BOOL, TRUE, FALSE,
+	VOID,
+	// operators
 	PLUS, MINUS, MULTIPLY, DIVIDE,
+	LESS, MORE, LESSEQUALS, MOREEQUALS, EQUALS, NOTEQUALS, // <, >, <=, >=, ==, !=
+	// bool ops
+	AND, OR,
+	// punctuation
 	LPAREN, RPAREN, // ()
+	BACKTICK,
+	SEMI,
+	LCURLY, RCURLY, // {}
+	BACKSLASH,
+	COMMA,
+	COLON,
+	QUOTES,
+	// misc.
 	ID,
 	ASSIGN,
-	SEMI,
-	LCURLY, RCURLY // {}
+	DISPLAY,
+	RECEIVE,
+	FUNCTION,
+	IF, ELSE
 };
 
-typedef std::variant<char, int, float, std::string> TokenData;
+typedef std::variant<char, int, float, std::string, bool> TokenData;
 
+std::ostream& operator<<(std::ostream& os, const TokenType& lex);
 std::ostream& operator<<(std::ostream& os, const TokenData& data);
 
 struct Token {
 	TokenData data;
-	LEXER_TYPES type;
+	TokenType type;
 
 	Token();
 	Token(const Token& copy);
-	Token(char data, LEXER_TYPES type);
-	Token(int data, LEXER_TYPES type);
-	Token(float data, LEXER_TYPES type);
-	Token(std::string data, LEXER_TYPES type);
+	Token(char data, TokenType type);
+	Token(int data, TokenType type);
+	Token(float data, TokenType type);
+	Token(std::string data, TokenType type);
 
 	friend std::ostream& operator<<(std::ostream& os, const Token& token);
 };

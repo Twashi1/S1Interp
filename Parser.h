@@ -10,6 +10,7 @@
 #include "Lexer.h"
 
 #include "Node.h"
+#include "Errors.h"
 
 class Parser {
 private:
@@ -17,26 +18,34 @@ private:
 	Token current_token;
 
 public:
-	Parser();
 	Parser(Lexer* lexer);
 
 	S1::Node Expr();
 	S1::Node Parse();
 
 private:
-	inline void Error(const char* text);
-	inline void Info(const char* text) { std::cout << "[PARSER INFO]: " << text << std::endl; }
+	inline S1::PROGRAM Program(void);
 
-	inline S1::COMPOUND Program(void);
 	inline S1::COMPOUND CompoundStatement(void);
-	inline S1::ASSIGN AssignmentStatement(void);
+	inline S1::IF IfStatement(void);
+
+	std::vector<std::shared_ptr<S1::Node>> AssignmentStatements(const std::vector<std::shared_ptr<S1::VAR>>& var_list);
+	std::vector<std::shared_ptr<S1::Node>> VarDeclarations(const std::vector<std::shared_ptr<S1::VAR>>& var_list);
+
+	inline S1::Node Statement(void);
 	inline S1::VAR Variable(void);
 	inline S1::NOOP Empty(void);
 
-	std::vector<std::shared_ptr<S1::Node>> StatementList(void);
-	inline S1::Node Statement(void);
+	inline S1::TYPE TypeSpecification(void);
 
-	inline void Eat(LEXER_TYPES eat_type);
+	std::vector<std::shared_ptr<S1::Node>> StatementList(void);
+
+	inline S1::PARAM Parameter(void);
+	std::vector<std::shared_ptr<S1::PARAM>> ParamList(void);
+
+	S1::Node CreateFunction(void);
+
+	inline void Eat(TokenType eat_type);
 
 	inline S1::Node Term(void);
 	inline S1::Node Factor(void);

@@ -4,36 +4,40 @@
 
 #include "Interpreter.h"
 
-std::ostream& operator<<(std::ostream& os, const S1::POD& num) {
-	os << "POD(" << num.index() << ")";
-	return os;
+namespace S1 {
+	std::string divider = "----------------------\n";
+
+	void Run(const char* path) {
+		// Getting data from script
+		std::string script_text;
+		std::ifstream script(path, std::ios::in);
+
+		if (script) {
+			script_text = std::string((std::istreambuf_iterator<char>(script)), std::istreambuf_iterator<char>());
+		}
+
+		// init lexer, parser, and interpreter
+		Lexer lexer(script_text);
+		Parser parser(&lexer);
+		S1::Interpreter s1_interpreter(&parser);
+
+		// call interpret
+		std::cout << "S1 Interpreter launching!" << std::endl;
+		s1_interpreter.Interpret();
+
+		s1_interpreter.PrintScopes();
+	}
 }
 
-std::ostream& operator<<(std::ostream& os, const std::map<std::string, S1::POD> table)
-{
-	os << "{" << std::endl;
-	for (const std::pair<std::string, S1::POD>& pair : table) {
-		os << "    {" << pair.first << ": " << std::get<int>(pair.second) << "}" << std::endl;
+int main(int argc, char* argv[]) {
+	if (argc >= 2) {
+		S1::Run(argv[1]);
 	}
-	os << "}";
-
-	return os;
-}
-
-int main(void) {
-	std::cout << "S1 Interpreter launching!" << std::endl;
-	std::string script_text;
-	std::ifstream script("test.s1", std::ios::in);
-
-	if (script) {
-		script_text = std::string((std::istreambuf_iterator<char>(script)), std::istreambuf_iterator<char>());
+	else {
+		S1::Run("scripts/test.s1");
 	}
 
-	Lexer s1_lexer(script_text);
-	Parser s1_parser(&s1_lexer);
-	Interpreter s1_interpreter(&s1_parser);
+	system("pause");
 
-	S1::POD output = s1_interpreter.Interpret();
-
-	std::cout << s1_interpreter.GLOBAL_SCOPE << std::endl;
+	return 0;
 }
