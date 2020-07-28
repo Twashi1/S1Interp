@@ -5,10 +5,10 @@
 #include <map>
 #include <sstream>
 
-#include "Errors.h"
+#include "Node.h"
 
 namespace S1 {
-	typedef std::variant<int, float, double, long, bool, std::string> POD;
+	typedef std::variant<int, float, double, long, bool, std::string, S1::Node> POD;
 	std::ostream& operator<<(std::ostream& os, const POD& num);
 	S1::POD& operator>>(std::istream& is, S1::POD& pod);
 	std::string PODToStr(const POD& num);

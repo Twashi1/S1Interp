@@ -10,7 +10,6 @@
 #include "Lexer.h"
 
 #include "Node.h"
-#include "Errors.h"
 
 class Parser {
 private:
@@ -28,13 +27,17 @@ private:
 
 	inline S1::COMPOUND CompoundStatement(void);
 	inline S1::IF IfStatement(void);
+	inline S1::WHILE WhileStatement(void);
+	inline S1::Node IDStatement(void);
+	inline S1::Node VarDeclaration(const S1::VAR& var);
 
-	std::vector<std::shared_ptr<S1::Node>> AssignmentStatements(const std::vector<std::shared_ptr<S1::VAR>>& var_list);
+	std::vector<std::shared_ptr<S1::Node>> AssignmentStatements(const std::vector<std::shared_ptr<S1::VAR>>& var_list, const S1::Node& right);
 	std::vector<std::shared_ptr<S1::Node>> VarDeclarations(const std::vector<std::shared_ptr<S1::VAR>>& var_list);
+	std::vector<std::shared_ptr<S1::VAR>> ParseIDList(const S1::VAR& first);
 
 	inline S1::Node Statement(void);
-	inline S1::VAR Variable(void);
 	inline S1::NOOP Empty(void);
+	inline S1::Node FunctionCall(void);
 
 	inline S1::TYPE TypeSpecification(void);
 

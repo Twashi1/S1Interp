@@ -1,13 +1,6 @@
 #include "Interpreter.h"
 
-S1::POD S1::Interpreter::operator()(const S1::BINOP& visitee) {
-	std::cout << "[WARNING] Visiting raw BINOP!" << std::endl;
-	return S1::POD(0);
-}
-
 S1::POD S1::Interpreter::operator()(const S1::BINOP_ADD& visitee) {
-	std::cout << "Left is: " << *visitee.left << std::endl;
-	std::cout << "Right is: " << *visitee.right << std::endl;
 	return std::visit(*this, *visitee.left) + std::visit(*this, *visitee.right);
 }
 
@@ -71,7 +64,12 @@ S1::POD S1::Interpreter::operator()(const S1::UNARYOP_MIN& visitee) {
 	return -1 * std::visit(*this, *visitee.expr);
 }
 
-S1::POD S1::Interpreter::operator()(const S1::UNARYOP& visitee) {
+S1::POD S1::Interpreter::operator()(const UNSCOPED_COMPOUND& visitee)
+{
+	for (std::shared_ptr<S1::Node> child : visitee.children) {
+		std::visit(*this, *child);
+	}
+
 	return POD(0);
 }
 
@@ -82,7 +80,16 @@ S1::POD S1::Interpreter::operator()(const S1::COMPOUND& visitee) {
 	__AddScope();
 
 	for (std::shared_ptr<S1::Node> child : visitee.children) {
-		std::visit(*this, *child);
+		// index of RETURN
+		try {
+			std::get<RETURN>(*child);
+			S1::POD data = std::visit(*this, *child);
+			current_scope_level--;
+			return data;
+		}
+		catch (std::bad_variant_access) {
+			std::visit(*this, *child);
+		}
 	}
 
 	// exiting our compound, decrement scope
@@ -95,19 +102,14 @@ S1::POD S1::Interpreter::operator()(const S1::ASSIGN& visitee) {
 	std::string var_name = visitee.left->name;
 
 	S1::POD data = std::visit(*this, *visitee.right);
-	current_scope->memory.data[var_name] = data;
+	current_scope->memory.Define(var_name, data);
 
 	return POD(0);
 }
 
 S1::POD S1::Interpreter::operator()(const S1::VAR& visitee) {
 	std::string var_name = visitee.name;
-	try {
-		__SearchSymbol(var_name.c_str());
-	}
-	catch (std::out_of_range) {
-		// TODO: throw an S1 error
-	}
+	__SearchSymbol(var_name.c_str());
 
 	return __SearchMemory(var_name.c_str());
 }
@@ -155,7 +157,6 @@ S1::POD S1::Interpreter::operator()(const DISPLAY& visitee)
 S1::POD S1::Interpreter::operator()(const RECEIVE& visitee)
 {
 	std::string data;
-	std::cin.ignore();
 	getline(std::cin, data);
 
 	return data;
@@ -169,8 +170,37 @@ S1::POD S1::Interpreter::operator()(const FUNCDECL& visitee)
 
 S1::POD S1::Interpreter::operator()(const FUNCDEF& visitee)
 {
-	// create function definition in memory
-	return POD(0);
+	current_scope->memory.Define(visitee.name, visitee);
+	return S1::POD(0);
+}
+
+S1::POD S1::Interpreter::operator()(const FUNCCALL& visitee)
+{
+	// get the definition of the function
+	S1::FUNCDEF func_def = std::get<S1::FUNCDEF>(std::get<S1::Node>(__SearchMemory(visitee.name.c_str())));
+
+	// get the parameters
+	for (int i = 0; i < visitee.params.size(); i++) {
+		S1::Node data = *visitee.params[i];
+		S1::PARAM argument_param = *func_def.params[i];
+
+		// add declarations for each parameter inside the function compound, and assign them to data
+		// create the declaration
+		S1::Node declaration = VARDECL(argument_param.var, argument_param.type);
+		S1::Node assign = ASSIGN(*argument_param.var, data);
+
+		// add both to compound
+		func_def.compound->children.insert(func_def.compound->children.begin(), std::make_shared<S1::Node>(declaration));
+		func_def.compound->children.insert(func_def.compound->children.begin(), std::make_shared<S1::Node>(assign));
+	}
+
+	// now visit the function
+	return std::visit(*this, (S1::Node)*func_def.compound);;
+}
+
+S1::POD S1::Interpreter::operator()(const RETURN& visitee)
+{
+	return std::visit(*this, *visitee.data);
 }
 
 S1::POD S1::Interpreter::operator()(const PARAM& visitee)
@@ -190,6 +220,23 @@ S1::POD S1::Interpreter::operator()(const IF& visitee)
 		// otherwise visit the next else or else if
 		else if (visitee.chained_if != nullptr) {
 			return std::visit(*this, (S1::Node)*visitee.chained_if);
+		}
+	}
+
+	return S1::POD(0);
+}
+
+S1::POD S1::Interpreter::operator()(const WHILE& visitee)
+{
+	S1::POD data = std::visit(*this, *visitee.condition);
+
+	if (data.index() == 4) {
+		while (std::get<bool>(data)) {
+			for (std::shared_ptr<S1::Node> node : visitee.compound->children) {
+				std::visit(*this, *node);
+			}
+
+			data = std::visit(*this, *visitee.condition);
 		}
 	}
 
@@ -251,21 +298,22 @@ S1::Symbol S1::Interpreter::__SearchSymbol(const char* var_name)
 	try {
 		return current_scope->symbols.Lookup(var_name);
 	}
-	catch (S1::id_not_found) {
+	catch (std::out_of_range) {
 		int search_level = current_scope_level - 1;
 
-		while (search_level != 0) {
+		while (search_level >= 0) {
 			for (std::shared_ptr<Scope> scope_ptr : scopes[search_level]) {
 				try {
 					return scope_ptr->symbols.Lookup(var_name);
 				}
-				catch (S1::id_not_found) {}
+				catch (std::out_of_range) {}
 			}
 
 			search_level--;
 		}
 
-		throw new S1::id_not_found(var_name);
+		std::cout << "Error, couldn't find symbol of name: " << var_name << std::endl;
+		PrintScopes();
 	}
 }
 
@@ -274,22 +322,23 @@ S1::POD S1::Interpreter::__SearchMemory(const char* var_name)
 	try {
 		return current_scope->memory.Lookup(var_name);
 	}
-	catch (S1::id_not_found) {
+	catch (std::out_of_range) {
 		// iterate over all scopes
 		int search_level = current_scope_level - 1;
 
-		while (search_level != 0) {
+		while (search_level >= 0) {
 			for (std::shared_ptr<Scope> scope_ptr : scopes[search_level]) {
 				try {
 					return scope_ptr->memory.Lookup(var_name);
 				}
-				catch (S1::id_not_found) {}
+				catch (std::out_of_range) {}
 			}
 
 			search_level--;
 		}
 
-		throw S1::id_not_found(var_name);
+		std::cout << "Error, couldn't find memory of name: " << var_name << std::endl;
+		PrintScopes();
 	}
 }
 

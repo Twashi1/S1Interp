@@ -18,6 +18,7 @@ namespace S1 {
 	struct UNARYOP_ADD;
 	struct UNARYOP_MIN;
 
+	struct UNSCOPED_COMPOUND;
 	struct COMPOUND;
 	struct PROGRAM;
 
@@ -35,6 +36,9 @@ namespace S1 {
 	struct FUNCDECL;
 	struct FUNCDEF;
 	struct FUNCCALL;
+	struct RETURN;
+
+	struct WHILE;
 
 	struct ISTRING;
 
@@ -58,7 +62,6 @@ namespace S1 {
 		std::string,
 		ISTRING,
 		// BINOP
-		BINOP,
 		BINOP_ADD,
 		BINOP_MIN,
 		BINOP_MUL,
@@ -72,11 +75,11 @@ namespace S1 {
 		BINOP_AND,
 		BINOP_OR,
 		// UNARYOP
-		UNARYOP,
 		UNARYOP_ADD,
 		UNARYOP_MIN,
 		// CONSTRUCTS
 		COMPOUND,
+		UNSCOPED_COMPOUND,
 		PROGRAM,
 		NOOP,
 		// OTHER
@@ -84,10 +87,15 @@ namespace S1 {
 		TYPE,
 		VARDECL,
 		ASSIGN, // VARDEF
+		PARAM,
+		// LOOPS
+		IF,
+		WHILE,
+		// FUNCTION
 		FUNCDECL,
 		FUNCDEF,
-		PARAM,
-		IF,
+		FUNCCALL,
+		RETURN,
 		// BUILT-IN TEMP
 		DISPLAY,
 		RECEIVE
@@ -272,5 +280,37 @@ namespace S1 {
 		IF(const S1::Node& condition, const S1::COMPOUND& compound, const std::shared_ptr<S1::IF> chained_if = nullptr)
 			: condition(std::make_shared<S1::Node>(condition)), compound(std::make_shared<COMPOUND>(compound)), chained_if(chained_if)
 		{}
+	};
+
+	struct WHILE {
+		std::shared_ptr<S1::Node> condition;
+		std::shared_ptr<S1::COMPOUND> compound;
+
+		WHILE(const WHILE& copy) : condition(copy.condition), compound(copy.compound) {}
+		WHILE(const S1::Node& condition, const S1::COMPOUND& compound) : condition(std::make_shared<S1::Node>(condition)), compound(std::make_shared<S1::COMPOUND>(compound)) {}
+	};
+
+	struct FUNCCALL {
+		std::string name;
+		std::vector<std::shared_ptr<S1::Node>> params;
+
+		FUNCCALL(const FUNCCALL& copy) : name(copy.name), params(copy.params) {}
+		FUNCCALL(const std::string& name, const std::vector<S1::Node>& params);
+		FUNCCALL(const std::string& name, const std::vector<std::shared_ptr<S1::Node>>& params) : name(name), params(params) {}
+	};
+
+	struct RETURN {
+		std::shared_ptr<S1::Node> data;
+
+		RETURN(const RETURN& copy) : data(copy.data) {}
+		RETURN(const S1::Node& node) : data(std::make_shared<S1::Node>(node)) {}
+		RETURN(const std::shared_ptr<S1::Node> node) : data(node) {}
+	};
+
+	struct UNSCOPED_COMPOUND {
+		std::vector<std::shared_ptr<S1::Node>> children;
+
+		UNSCOPED_COMPOUND(const UNSCOPED_COMPOUND& copy) : children(copy.children) {}
+		UNSCOPED_COMPOUND(const std::vector<std::shared_ptr<S1::Node>>& children) : children(children) {}
 	};
 }

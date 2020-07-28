@@ -11,8 +11,11 @@ inline void Parser::Eat(TokenType eat_type) {
 	if (current_token.type == eat_type) {
 		current_token = lexer->GetNextToken();
 	} else {
-		// raise error
-		throw S1::unexpected_token(current_token, eat_type, lexer->line_num, lexer->column_num);
+		// really dumb code re-do exceptions
+		std::cout
+			<< "[Syntax Error] Unexpected token: " << current_token << " at "
+			<< lexer->line_num << ":" << lexer->column_num
+			<< ", expected: " << eat_type << std::endl;
 	}
 }
 
@@ -162,9 +165,15 @@ inline S1::Node Parser::Factor(void) {
 		break;
 	}
 
-	default:
+	case TokenType::ID:
 	{
-		node = Variable();
+		if (lexer->GetCurrentChar() == '(') {
+			node = FunctionCall();
+		}
+		else {
+			node = S1::VAR(current_token);
+			Eat(TokenType::ID);
+		}
 		break;
 	}
 	}
@@ -253,7 +262,7 @@ S1::Node Parser::Expr() {
 
 		case TokenType::MORE:
 		{
-			Eat(TokenType::NOTEQUALS);
+			Eat(TokenType::MORE);
 
 			S1::Node copy(node);
 
@@ -354,12 +363,8 @@ inline S1::COMPOUND Parser::CompoundStatement(void)
 	return root;
 }
 
-std::vector<std::shared_ptr<S1::Node>> Parser::AssignmentStatements(const std::vector<std::shared_ptr<S1::VAR>>& var_list)
+std::vector<std::shared_ptr<S1::Node>> Parser::AssignmentStatements(const std::vector<std::shared_ptr<S1::VAR>>& var_list, const S1::Node& right)
 {
-	Eat(TokenType::ASSIGN);
-
-	S1::Node right = Expr();
-
 	std::vector<std::shared_ptr<S1::Node>> assignment_statements;
 
 	for (std::shared_ptr<S1::VAR> var : var_list) {
@@ -429,11 +434,100 @@ inline S1::IF Parser::IfStatement(void)
 	}
 }
 
-inline S1::VAR Parser::Variable(void)
+inline S1::WHILE Parser::WhileStatement(void)
 {
-	S1::VAR var = S1::VAR(current_token);
+	Eat(TokenType::WHILE);
+
+	Eat(TokenType::LPAREN);
+	S1::Node condition = Expr();
+	Eat(TokenType::RPAREN);
+
+	S1::COMPOUND compound = CompoundStatement();
+
+	return S1::WHILE(condition, compound);
+}
+
+inline S1::Node Parser::IDStatement(void)
+{
+	Token id = current_token;
 	Eat(TokenType::ID);
-	return var;
+
+	S1::VAR var = S1::VAR(id);
+
+	S1::Node node;
+
+	switch (current_token.type) {
+	case TokenType::PLUSEQ: Eat(TokenType::PLUSEQ); node = S1::ASSIGN(var, S1::BINOP_ADD(var, Expr())); break;
+	case TokenType::MINUSEQ: Eat(TokenType::MINUSEQ); node = S1::ASSIGN(var, S1::BINOP_MIN(var, Expr())); break;
+	case TokenType::DIVIDEEQ: Eat(TokenType::DIVIDEEQ); node = S1::ASSIGN(var, S1::BINOP_DIV(var, Expr())); break;
+	case TokenType::MULTIPLYEQ: Eat(TokenType::MULTIPLYEQ); node = S1::ASSIGN(var, S1::BINOP_MUL(var, Expr())); break;
+
+	case TokenType::INCREMENT: Eat(TokenType::INCREMENT); node = S1::ASSIGN(var, S1::BINOP_ADD(var, 1)); break;
+	case TokenType::DECREMENT: Eat(TokenType::DECREMENT); node = S1::ASSIGN(var, S1::BINOP_MIN(var, 1)); break;
+
+	case TokenType::ASSIGN: Eat(TokenType::ASSIGN); node = S1::ASSIGN(var, Expr()); break;
+	case TokenType::COLON: Eat(TokenType::COLON); node = VarDeclaration(var); break;
+
+	case TokenType::COMMA:
+	{
+		std::vector<std::shared_ptr<S1::Node>> nodes;
+		std::vector<std::shared_ptr<S1::VAR>> vars = ParseIDList(S1::VAR(id));
+
+		switch (current_token.type) {
+		case TokenType::ASSIGN: Eat(TokenType::ASSIGN); nodes = AssignmentStatements(vars, Expr()); break;
+		case TokenType::COLON: Eat(TokenType::COLON); nodes = VarDeclarations(vars); break;
+		}
+
+		node = S1::UNSCOPED_COMPOUND(nodes);
+		break;
+	}
+	}
+
+	return node;
+}
+
+inline S1::Node Parser::VarDeclaration(const S1::VAR& var)
+{
+	std::vector<std::shared_ptr<S1::Node>> nodes;
+
+	S1::TYPE type = TypeSpecification();
+
+	nodes.emplace_back(std::make_shared<S1::Node>((S1::Node)S1::VARDECL(var, type)));
+
+	if (current_token.type == TokenType::ASSIGN) {
+		Eat(TokenType::ASSIGN);
+		nodes.emplace_back(std::make_shared<S1::Node>((S1::Node)S1::ASSIGN(var, Expr())));
+	}
+
+	return S1::UNSCOPED_COMPOUND(nodes);
+}
+
+inline S1::Node Parser::FunctionCall(void)
+{
+	S1::Node node;
+
+	std::string name = std::get<std::string>(current_token.data);
+	Eat(TokenType::ID);
+
+	Eat(TokenType::LPAREN);
+	std::vector<std::shared_ptr<S1::Node>> parameters;
+
+	if (current_token.type != TokenType::RPAREN) {
+		S1::Node param = Expr();
+		parameters.emplace_back(std::make_shared<S1::Node>(param));
+	}
+
+	while (current_token.type == TokenType::COMMA) {
+		Eat(TokenType::COMMA);
+		S1::Node param = Expr();
+		parameters.emplace_back(std::make_shared<S1::Node>(param));
+	}
+
+	Eat(TokenType::RPAREN);
+
+	node = S1::FUNCCALL(name, parameters);
+
+	return node;
 }
 
 inline S1::NOOP Parser::Empty(void)
@@ -470,6 +564,11 @@ inline S1::TYPE Parser::TypeSpecification(void)
 	case TokenType::VOID:
 		Eat(TokenType::VOID);
 		break;
+
+	default:
+		// TODO: better logging
+		std::cout << "Couldn't get type" << std::endl;
+		break;
 	}
 
 	S1::TYPE type = S1::TYPE(token);
@@ -480,53 +579,13 @@ inline S1::TYPE Parser::TypeSpecification(void)
 std::vector<std::shared_ptr<S1::Node>> Parser::StatementList(void)
 {
 	std::vector<std::shared_ptr<S1::Node>> statements;
-	bool skip_first = false;
 
-	if (current_token.type != TokenType::ID) {
-		S1::Node first = Statement();
-		statements.emplace_back(std::make_shared<S1::Node>(first));
-	}
-	else {
-		skip_first = true;
-	}
+	S1::Node first = Statement();
+	statements.emplace_back(std::make_shared<S1::Node>(first));
 
-	while (current_token.type == TokenType::SEMI || skip_first) {
-		if (!skip_first) { Eat(TokenType::SEMI); }
-		skip_first = false;
-
-		switch (current_token.type) {
-		case TokenType::ID:
-		{
-			std::vector<std::shared_ptr<S1::VAR>> vars;
-			S1::VAR first(current_token);
-			vars.emplace_back(std::make_shared<S1::VAR>(first));
-			Eat(TokenType::ID);
-
-			while (current_token.type == TokenType::COMMA) {
-				Eat(TokenType::COMMA);
-				vars.emplace_back(std::make_shared<S1::VAR>(S1::VAR(current_token)));
-				Eat(TokenType::ID);
-			}
-
-			std::vector<std::shared_ptr<S1::Node>> nodes;
-
-			switch (current_token.type) {
-			case TokenType::ASSIGN:
-				nodes = AssignmentStatements(vars);
-				break;
-
-			case TokenType::COLON:
-				nodes = VarDeclarations(vars);
-				break;
-			}
-
-			statements.insert(statements.end(), nodes.begin(), nodes.end());
-		}
-
-		default:
-			statements.emplace_back(std::make_shared<S1::Node>(Statement()));
-			break;
-		}
+	while (current_token.type == TokenType::SEMI) {
+		Eat(TokenType::SEMI);
+		statements.emplace_back(std::make_shared<S1::Node>(Statement()));
 	}
 
 	return statements;
@@ -554,7 +613,9 @@ std::vector<std::shared_ptr<S1::PARAM>> Parser::ParamList(void)
 {
 	std::vector<std::shared_ptr<S1::PARAM>> params;
 
-	Eat(TokenType::LPAREN);
+	if (current_token.type == TokenType::RPAREN) {
+		return params;
+	}
 
 	// get the first parameter
 	S1::PARAM first = Parameter();
@@ -574,13 +635,9 @@ std::vector<std::shared_ptr<S1::PARAM>> Parser::ParamList(void)
 
 S1::Node Parser::CreateFunction(void)
 {
-	Eat(TokenType::FUNCTION);
-
 	S1::Node node;
 
-	// get parameters
-	std::vector<std::shared_ptr<S1::PARAM>> params = ParamList();
-	Eat(TokenType::RPAREN);
+	Eat(TokenType::FUNCTION); // eat function keyword
 
 	// get name
 	std::string name = std::get<std::string>(current_token.data);
@@ -591,6 +648,11 @@ S1::Node Parser::CreateFunction(void)
 
 	// get type
 	S1::TYPE type = TypeSpecification();
+
+	// get parameters
+	Eat(TokenType::LPAREN);
+	std::vector<std::shared_ptr<S1::PARAM>> params = ParamList();
+	Eat(TokenType::RPAREN);
 
 	switch (current_token.type) {
 	case TokenType::LCURLY: // function definition
@@ -647,7 +709,27 @@ inline S1::Node Parser::Statement(void)
 		break;
 	}
 
+	case TokenType::WHILE:
+	{
+		node = WhileStatement();
+		break;
+	}
+
+	case TokenType::RETURN:
+	{
+		Eat(TokenType::RETURN);
+		node = S1::RETURN(Expr());
+		break;
+	}
+
+	case TokenType::ID:
+	{
+		node = IDStatement();
+		break;
+	}
+
 	default:
+		std::cout << "[PARSER WARN] Failed to create statement from: " << current_token.type << std::endl;
 		node = Empty();
 		break;
 	}
@@ -657,8 +739,6 @@ inline S1::Node Parser::Statement(void)
 
 std::vector<std::shared_ptr<S1::Node>> Parser::VarDeclarations(const std::vector<std::shared_ptr<S1::VAR>>& var_list)
 {
-	Eat(TokenType::COLON);
-
 	std::shared_ptr<S1::TYPE> type_node = std::make_shared<S1::TYPE>(TypeSpecification());
 
 	S1::Node assign_value = (S1::Node)S1::NOOP();
@@ -693,4 +773,20 @@ std::vector<std::shared_ptr<S1::Node>> Parser::VarDeclarations(const std::vector
 	}
 
 	return nodes;
+}
+
+std::vector<std::shared_ptr<S1::VAR>> Parser::ParseIDList(const S1::VAR& first)
+{
+	std::vector<std::shared_ptr<S1::VAR>> vars;
+
+	// add first var to vector
+	vars.emplace_back(std::make_shared<S1::VAR>(first));
+
+	while (current_token.type == TokenType::COMMA) {
+		Eat(TokenType::COMMA);
+		vars.emplace_back(std::make_shared<S1::VAR>(S1::VAR(current_token)));
+		Eat(TokenType::ID);
+	}
+
+	return vars;
 }

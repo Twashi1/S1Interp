@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 		S1::Run(argv[1]);
 	}
 	else {
-		S1::Run("scripts/test.s1");
+		S1::Run("scripts/rpg.s1");
 	}
 
 	system("pause");

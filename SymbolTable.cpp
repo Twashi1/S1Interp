@@ -1,26 +1,15 @@
 #include "SymbolTable.h"
-#include "Errors.h"
 
 S1::Symbol S1::SymbolTable::Lookup(const char* name)
 {
-	try {
-		S1::Symbol symbol = data.at(name);
-		return symbol;
-	}
-	catch (std::out_of_range) {
-		throw new S1::id_not_found(name);
-	}
+	S1::Symbol symbol = data.at(name);
+	return symbol;
 }
 
 S1::Symbol S1::SymbolTable::Lookup(const std::string& name)
 {
-	try {
-		S1::Symbol symbol = data.at(name);
-		return symbol;
-	}
-	catch (std::out_of_range) {
-		throw new S1::id_not_found(name);
-	}
+	S1::Symbol symbol = data.at(name);
+	return symbol;
 }
 
 void S1::SymbolTable::Define(const Symbol& symbol)

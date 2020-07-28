@@ -1,7 +1,6 @@
 #include "MemoryTable.h"
 
 S1::POD S1::operator+(const POD& left, const POD& right) {
-	// this works because there are less than 10 variants in left
 	switch (left.index() * 10 + right.index()) {
 	case 00: return std::get<0>(left) + std::get<0>(right); break;
 	case 01: return std::get<0>(left) + std::get<1>(right); break;
@@ -19,11 +18,11 @@ S1::POD S1::operator+(const POD& left, const POD& right) {
 	case 31: return std::get<3>(left) + std::get<1>(right); break;
 	case 32: return std::get<3>(left) + std::get<2>(right); break;
 	case 33: return std::get<3>(left) + std::get<3>(right); break;
+	case 55: return std::get<5>(left) + std::get<5>(right); break;
 	}
 }
 
 S1::POD S1::operator-(const POD& left, const POD& right) {
-	// this works because there are less than 10 variants in left
 	switch (left.index() * 10 + right.index()) {
 	case 00: return std::get<0>(left) - std::get<0>(right); break;
 	case 01: return std::get<0>(left) - std::get<1>(right); break;
@@ -45,7 +44,6 @@ S1::POD S1::operator-(const POD& left, const POD& right) {
 }
 
 S1::POD S1::operator*(const POD& left, const POD& right) {
-	// this works because there are less than 10 variants in left
 	switch (left.index() * 10 + right.index()) {
 	case 00: return std::get<0>(left) * std::get<0>(right); break;
 	case 01: return std::get<0>(left) * std::get<1>(right); break;
@@ -67,7 +65,6 @@ S1::POD S1::operator*(const POD& left, const POD& right) {
 }
 
 S1::POD S1::operator/(const POD& left, const POD& right) {
-	// this works because there are less than 10 variants in left
 	switch (left.index() * 10 + right.index()) {
 	case 00: return std::get<0>(left) / std::get<0>(right); break;
 	case 01: return std::get<0>(left) / std::get<1>(right); break;
@@ -196,6 +193,7 @@ S1::POD S1::operator==(const POD& left, const POD& right)
 	case 32: return std::get<3>(left) == std::get<2>(right); break;
 	case 33: return std::get<3>(left) == std::get<3>(right); break;
 	case 44: return std::get<4>(left) == std::get<4>(right); break;
+	case 55: return std::get<5>(left) == std::get<5>(right); break;
 	}
 }
 
@@ -219,6 +217,7 @@ S1::POD S1::operator!=(const POD& left, const POD& right)
 	case 32: return std::get<3>(left) != std::get<2>(right); break;
 	case 33: return std::get<3>(left) != std::get<3>(right); break;
 	case 44: return std::get<4>(left) != std::get<4>(right); break;
+	case 55: return std::get<5>(left) != std::get<5>(right); break;
 	}
 }
 
@@ -238,24 +237,14 @@ S1::POD S1::operator||(const POD& left, const POD& right)
 
 S1::POD S1::MemoryTable::Lookup(const char* name)
 {
-	try {
-		S1::POD pod = data.at(name);
-		return pod;
-	}
-	catch (std::out_of_range) {
-		throw new S1::id_not_found(name);
-	}
+	S1::POD pod = data.at(name);
+	return pod;
 }
 
 S1::POD S1::MemoryTable::Lookup(const std::string& name)
 {
-	try {
-		S1::POD pod = data.at(name);
-		return pod;
-	}
-	catch (std::out_of_range) {
-		throw new S1::id_not_found(name);
-	}
+	S1::POD pod = data.at(name);
+	return pod;
 }
 
 void S1::MemoryTable::Define(const std::string& name, const S1::POD& pod)

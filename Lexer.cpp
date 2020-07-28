@@ -137,8 +137,10 @@ inline void Lexer::SkipComment(void)
 
 inline Token Lexer::ID(void) {
 	std::string result = "";
+	int lpos = 0;
 
-	while (isalnum(current_char) && current_char != (char)TokenType::END) {
+	while ((isalnum(current_char) || current_char == '_') && current_char != (char)TokenType::END) {
+		lpos++;
 		result += current_char;
 		Advance();
 	}
@@ -174,7 +176,7 @@ Token Lexer::GetNextToken(void) {
 				break;
 			}
 		}
-		else if (isalpha(current_char)) {
+		else if (isalpha(current_char) || current_char == '_') {
 			return ID();
 		}
 		else {
@@ -224,21 +226,69 @@ Token Lexer::GetNextToken(void) {
 				}
 				break;
 			case '+':
+			{
 				Advance();
-				return Token('+', TokenType::PLUS);
+				switch (current_char) {
+				case '=':
+					Advance();
+					return Token('+=', TokenType::PLUSEQ);
+					break;
+
+				case '+':
+					Advance();
+					return Token('++', TokenType::INCREMENT);
+					break;
+				
+				default:
+					return Token('+', TokenType::PLUS);
+					break;
+				}
 				break;
+			}
 			case '-':
+			{
 				Advance();
-				return Token('-', TokenType::MINUS);
+				switch (current_char) {
+				case '=':
+					Advance();
+					return Token('-=', TokenType::MINUSEQ);
+					break;
+
+				case '-':
+					Advance();
+					return Token('--', TokenType::DECREMENT);
+					break;
+
+				default:
+					return Token('-', TokenType::MINUS);
+					break;
+				}
 				break;
+			}
 			case '*':
+			{
 				Advance();
-				return Token('*', TokenType::MULTIPLY);
+				if (current_char == '=') {
+					Advance();
+					return Token('*=', TokenType::MULTIPLYEQ);
+				}
+				else {
+					return Token('*', TokenType::MULTIPLY);
+				}
 				break;
+			}
 			case '/':
+			{
 				Advance();
-				return Token('/', TokenType::DIVIDE);
+				if (current_char == '=') {
+					Advance();
+					return Token('/=', TokenType::DIVIDEEQ);
+				}
+				else {
+					return Token('/', TokenType::DIVIDE);
+				}
 				break;
+			}
 			case '(':
 				Advance();
 				return Token('(', TokenType::LPAREN);

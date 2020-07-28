@@ -65,6 +65,16 @@ S1::ISTRING::ISTRING(const std::string& text, const std::vector<Node>& nodes) : 
 	}
 }
 
+S1::FUNCCALL::FUNCCALL(const std::string& name, const std::vector<S1::Node>& params)
+	: name(name)
+{
+	this->params.reserve(sizeof(std::shared_ptr<S1::Node>) * params.size());
+
+	for (S1::Node param : params) {
+		this->params.emplace_back(std::make_shared<S1::Node>(param));
+	}
+}
+
 namespace S1 {
 	std::ostream& operator<<(std::ostream& os, const Node& node) {
 		os << "Node(" << node.index() << ")";

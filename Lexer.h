@@ -2,7 +2,6 @@
 
 #include <string>
 #include "Token.h"
-#include "Errors.h"
 
 #include <map>
 
@@ -17,6 +16,7 @@ public:
 		{"string", Token("string", TokenType::STRING)},
 		{"istring", Token("istring", TokenType::ISTRING)},
 		{"bool", Token("bool", TokenType::BOOL)},
+		{"void", Token("void", TokenType::VOID)},
 		{"display", Token("display", TokenType::DISPLAY)},
 		{"receive", Token("receive", TokenType::RECEIVE)},
 		{"function", Token("function", TokenType::FUNCTION)},
@@ -25,7 +25,9 @@ public:
 		{"or", Token("or", TokenType::OR)},
 		{"and", Token("and", TokenType::AND)},
 		{"if", Token("if", TokenType::IF)},
-		{"else", Token("else", TokenType::ELSE)}
+		{"else", Token("else", TokenType::ELSE)},
+		{"return", Token("return", TokenType::RETURN)},
+		{"while", Token("while", TokenType::WHILE)}
 	};
 	int pos = 0;
 	int peek_pos = 0;
@@ -43,6 +45,7 @@ public:
 	inline std::string CreateIString(void);
 	inline void SkipWhitespace(void);
 	inline void SkipComment(void);
+	inline char GetCurrentChar(void) { return current_char; }
 
 	inline Token ID(void);
 	

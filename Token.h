@@ -16,6 +16,8 @@ enum class TokenType : unsigned int {
 	// operators
 	PLUS, MINUS, MULTIPLY, DIVIDE,
 	LESS, MORE, LESSEQUALS, MOREEQUALS, EQUALS, NOTEQUALS, // <, >, <=, >=, ==, !=
+	INCREMENT, DECREMENT,
+	PLUSEQ, MINUSEQ, MULTIPLYEQ, DIVIDEEQ,
 	// bool ops
 	AND, OR,
 	// punctuation
@@ -33,7 +35,8 @@ enum class TokenType : unsigned int {
 	DISPLAY,
 	RECEIVE,
 	FUNCTION,
-	IF, ELSE
+	IF, ELSE, WHILE,
+	RETURN
 };
 
 typedef std::variant<char, int, float, std::string, bool> TokenData;

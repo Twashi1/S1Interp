@@ -39,10 +39,6 @@ namespace S1 {
 		POD operator()(const std::string& visitee) { return (POD)visitee; }
 		POD operator()(const ISTRING& visitee);
 
-		// raw types, should never be visited
-		POD operator()(const UNARYOP& visitee);
-		POD operator()(const BINOP& visitee);
-
 		POD operator()(const BINOP_ADD& visitee);
 		POD operator()(const BINOP_MIN& visitee);
 		POD operator()(const BINOP_MUL& visitee);
@@ -61,6 +57,7 @@ namespace S1 {
 		POD operator()(const UNARYOP_ADD& visitee);
 		POD operator()(const UNARYOP_MIN& visitee);
 
+		POD operator()(const UNSCOPED_COMPOUND& visitee);
 		POD operator()(const COMPOUND& visitee);
 		POD operator()(const ASSIGN& visitee);
 		POD operator()(const VAR& visitee);
@@ -77,10 +74,13 @@ namespace S1 {
 
 		POD operator()(const FUNCDECL& visitee);
 		POD operator()(const FUNCDEF& visitee);
+		POD operator()(const FUNCCALL& visitee);
+		POD operator()(const RETURN& visitee);
 
 		POD operator()(const PARAM& visitee);
 
 		POD operator()(const IF& visitee);
+		POD operator()(const WHILE& visitee);
 
 		void __Format(int pos, std::string& text, std::shared_ptr<S1::Node> node);
 		void __AddScope(void);

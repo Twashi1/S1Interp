@@ -65,8 +65,15 @@ std::ostream& operator<<(std::ostream& os, const TokenType& lex_type) {
 	case TokenType::DISPLAY: os << "DISPLAY"; break;
 	case TokenType::QUOTES: os << "QUOTES"; break;
 	case TokenType::RECEIVE: os << "RECEIVE"; break;
+	case TokenType::AND: os << "AND"; break;
+	case TokenType::OR: os << "OR"; break;
+	case TokenType::WHILE: os << "WHILE"; break;
+	case TokenType::IF: os << "IF"; break;
+	case TokenType::FUNCTION: os << "FUNCTION"; break;
+	case TokenType::MORE: os << "MORE"; break;
+	case TokenType::NOTEQUALS: os << "NOTEQUALS"; break;
 
-	default: os << "ERROR"; break;
+	default: os << "TokenType::" << (unsigned int)lex_type; break;
 	}
 
 	return os;
